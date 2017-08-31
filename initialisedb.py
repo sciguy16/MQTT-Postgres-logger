@@ -49,4 +49,5 @@ try:
 except:
 	print("Error creating table " + config.TABLE_TOPICS)
 
+conn.close()
 print("Success!")
