@@ -7,4 +7,8 @@ INSTALLATION:
 - edit the values in config.py to match your setup
 - create a database and a user for the logger
 - run initialisedb.py to set up the tables
-- run loggingserver.py
+- create a user called `logging` in the group `other` and modify `mqtt-postgres.xml` as appropriate
+- run `svccfg import mqtt-postgres.xml`
+
+NOTE
+- for a system that does not use svccfg, simply run `loggingserver.py` as a regular user and background it or install it as a service.
