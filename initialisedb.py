@@ -13,3 +13,14 @@ try:
 except:
 	print("Error connecting to database")
 
+cur = conn.cursor()
+
+try:
+	cur.execute("DROP TABLE IF EXISTS %s"%config.TABLE_DATA)
+except:
+	print("Cannot drop table '%s'"%config.TABLE_DATA)
+
+try:
+	cur.execute("DROP TABLE IF EXISTS %s"%config.TABLE_TOPICS)
+except:
+	print("Cannot drop table '%s'"%config.TABLE_TOPICS)
