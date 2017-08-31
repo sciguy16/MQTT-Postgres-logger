@@ -30,7 +30,7 @@ def topic_id(topic):
 	if topic in DISCOVERED_TOPICS:
 		# We know the topic id of the topic, so don't bother looking it up
 		return DISCOVERED_TOPICS[topic]
-	cur.execute("SELECT id FROM " + config.TABLE_TOPICS + " WHERE name='"+topic+"';")
+	cur.execute("SELECT id FROM " + config.TABLE_TOPICS + " WHERE name=%s;",(topic,))
 	if cur.rowcount == 1:
 		# the topic is in the database, so we remember it for later and return it
 		tid = cur.fetchone()[0]
@@ -38,7 +38,7 @@ def topic_id(topic):
 		return tid
 	else:
 		# Unknown topic, so we insert it into the database and remember its id for later
-		cur.execute("INSERT INTO " + config.TABLE_TOPICS + "(name) VALUES ('"+topic+"') RETURNING id")
+		cur.execute("INSERT INTO " + config.TABLE_TOPICS + "(name) VALUES (%s) RETURNING id",(topic,))
 		tid = cur.fetchone()[0]
 		conn.commit()
 		DISCOVERED_TOPICS[topic] = tid
