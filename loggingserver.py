@@ -5,7 +5,7 @@ import psycopg2
 import psycopg2.extras
 import paho.mqtt.client as mqtt
 
-DISCOVERED_TOPICS={}
+DISCOVERED_TOPICS={} # cache of topic IDs to avoid unnecessary database lookups
 
 try:
 	conn = psycopg2.connect(
@@ -18,37 +18,42 @@ except:
         print("Error connecting to database")
 
 
-
 cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 def topic_id(topic):
+	"""
+	Given a topic name, this function will first check the name to id mapping cached in memory
+	(the `DISCOVERED_TOPICS` variable). Failing this, we look it up in the database in case it
+	has been seen before but not by this instance. If the topic is not in the database then it
+	is added and we return the generated topic id.
+	"""
 	if topic in DISCOVERED_TOPICS:
-		print("known topic")
+		# We know the topic id of the topic, so don't bother looking it up
 		return DISCOVERED_TOPICS[topic]
 	cur.execute("SELECT id FROM " + config.TABLE_TOPICS + " WHERE name='"+topic+"';")
 	if cur.rowcount == 1:
-		print("topic is in database")
-		row = cur.fetchone()
-		tid = row[0]
-		print(tid)
+		# the topic is in the database, so we remember it for later and return it
+		tid = cur.fetchone()[0]
 		DISCOVERED_TOPICS[topic] = tid
 		return tid
 	else:
-		print("adding topic to database")
+		# Unknown topic, so we insert it into the database and remember its id for later
 		cur.execute("INSERT INTO " + config.TABLE_TOPICS + "(name) VALUES ('"+topic+"') RETURNING id")
 		tid = cur.fetchone()[0]
-		print(tid)
 		conn.commit()
+		DISCOVERED_TOPICS[topic] = tid
 		return tid
 		
 
 def on_message(client,userdata,message):
-	print("message received " ,str(message.payload.decode("utf-8")))
-	print("message topic=",message.topic)
-	print("message qos=",message.qos)
-	print("message retain flag=",message.retain)
+	"""
+	When a message is received we look up the topic id and then insert it into the data table.
+	"""
 	tid = topic_id(message.topic)
 	print("Topic: %i"%tid)
+	cur.execute("INSERT INTO " + config.TABLE_DATA + "(topic,data) VALUES (%s,%s)",
+		(tid,str(message.payload.decode("utf-8"))))
+	conn.commit()
 
 
 mqtt_client = mqtt.Client("Logger")
